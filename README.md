@@ -13,3 +13,21 @@ A mobile Android application designed to automate student attendance for the Col
 * **Platform:** Android (Java/Kotlin)
 * **Database:** Room Database
 * **IDE:** Android Studio
+  
+## 💻 How to Run
+
+1.  **Clone this repository:**
+    ```bash
+    git clone [https://github.com/your-username/CBSUA-CIT-Attendance-App.git](https://github.com/your-username/CBSUA-CIT-Attendance-App.git)
+    ```
+2.  **Open the project** in Android Studio.
+3.  **Sync Gradle** to install dependencies.
+4.  **Run** on an Emulator or physical Android device.
+
+## 📞 Contact
+Developed by: **AR-JAY F. LLANERA**
+* **Email:** arjayllanera09@gmail.com
+* **Institution:** Central Bicol State University of Agriculture (CBSUA)
+Developed by: **[Your Name/Team Name]**
+* **Email:** [Your Email]
+* **Institution:** Central Bicol State University of Agriculture (CBSUA)
