@@ -25,9 +25,6 @@ A mobile Android application designed to automate student attendance for the Col
 4.  **Run** on an Emulator or physical Android device.
 
 ## 📞 Contact
-Developed by: **AR-JAY F. LLANERA**
+Developed by: **AR-JAY F. LLANERA, IT INSTRUCTOR**
 * **Email:** arjayllanera09@gmail.com
-* **Institution:** Central Bicol State University of Agriculture (CBSUA)
-Developed by: **[Your Name/Team Name]**
-* **Email:** [Your Email]
-* **Institution:** Central Bicol State University of Agriculture (CBSUA)
+* **Institution:** Central Bicol State University of Agriculture (CBSUA) College of Information Technology
