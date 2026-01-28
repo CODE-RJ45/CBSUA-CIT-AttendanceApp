@@ -13,6 +13,8 @@ import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class DailyRecordsActivity : AppCompatActivity() {
 
@@ -30,7 +32,17 @@ class DailyRecordsActivity : AppCompatActivity() {
         section = intent.getStringExtra("SECTION") ?: ""
         date = intent.getStringExtra("DATE") ?: ""
 
-        findViewById<TextView>(R.id.tvDateHeader).text = date
+        // Format the date for the header
+        val inputFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        val displayFormat = SimpleDateFormat("MMM. dd, yyyy EEEE", Locale.getDefault())
+        val formattedDate = try {
+            val dateObj = inputFormat.parse(date)
+            if (dateObj != null) displayFormat.format(dateObj) else date
+        } catch (e: Exception) {
+            date
+        }
+
+        findViewById<TextView>(R.id.tvDateHeader).text = formattedDate
         findViewById<TextView>(R.id.tvClassSubHeader).text = "$subject | Section: $section"
 
         database = AppDatabase.getDatabase(this)
@@ -78,7 +90,8 @@ class DailyRecordsActivity : AppCompatActivity() {
 
     private fun updateName(studentId: String, name: String) {
         lifecycleScope.launch(Dispatchers.IO) {
-            database.attendanceDao().updateStudentName(studentId, name)
+            database.attendanceDao().updateStudentName(StudentNameEntity(studentId, name))
+            database.attendanceDao().updateAttendanceStudentNames(studentId, name)
             loadDailyAttendance()
             withContext(Dispatchers.Main) {
                 Toast.makeText(this@DailyRecordsActivity, "Name updated for ID $studentId", Toast.LENGTH_SHORT).show()

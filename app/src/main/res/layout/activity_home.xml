@@ -7,12 +7,14 @@
     android:fitsSystemWindows="true">
 
     <LinearLayout
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:gravity="center"
         android:orientation="vertical"
         android:padding="32dp"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <com.google.android.material.card.MaterialCardView
@@ -26,31 +28,44 @@
             <ImageView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
+                android:contentDescription="CBSUA CIT Logo"
                 android:scaleType="centerCrop"
-                android:src="@drawable/cit_logo"
-                android:contentDescription="CBSUA CIT Logo" />
+                android:src="@drawable/cit_logo" />
         </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="CBSUA-CIT\nAttendance App"
-            android:textSize="28sp"
-            android:textStyle="bold"
-            android:textColor="@color/primary_purple"
+            android:layout_marginBottom="48dp"
             android:gravity="center"
-            android:layout_marginBottom="48dp" />
+            android:text="CBSUA-CIT\nAttendance App"
+            android:textColor="@color/primary_purple"
+            android:textSize="28sp"
+            android:textStyle="bold" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnStartScanner"
             android:layout_width="match_parent"
             android:layout_height="64dp"
+            android:layout_marginBottom="12dp"
             android:text="Start Scanning"
-            android:textSize="16sp"
             android:textAllCaps="false"
+            android:textSize="16sp"
             app:cornerRadius="16dp"
-            android:layout_marginBottom="16dp"
             app:icon="@android:drawable/ic_menu_camera"
+            app:iconGravity="textStart" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnRegisterClass"
+            style="@style/Widget.MaterialComponents.Button.UnelevatedButton"
+            android:layout_width="match_parent"
+            android:layout_height="64dp"
+            android:layout_marginBottom="12dp"
+            android:text="Register Class &amp; Students"
+            android:textAllCaps="false"
+            android:textSize="16sp"
+            app:cornerRadius="16dp"
+            app:icon="@android:drawable/ic_menu_add"
             app:iconGravity="textStart" />
 
         <com.google.android.material.button.MaterialButton
@@ -58,26 +73,37 @@
             style="@style/Widget.MaterialComponents.Button.OutlinedButton"
             android:layout_width="match_parent"
             android:layout_height="64dp"
+            android:layout_marginBottom="12dp"
             android:text="View Attendance Records"
-            android:textSize="16sp"
             android:textAllCaps="false"
-            app:cornerRadius="16dp"
-            app:strokeColor="@color/primary_purple"
             android:textColor="@color/primary_purple"
+            android:textSize="16sp"
+            app:cornerRadius="16dp"
             app:icon="@android:drawable/ic_menu_agenda"
+            app:iconGravity="textStart"
             app:iconTint="@color/primary_purple"
-            app:iconGravity="textStart" />
+            app:strokeColor="@color/primary_purple" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnAbout"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="About the App"
+            android:textAllCaps="false"
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp" />
 
     </LinearLayout>
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Developed by: Ar-jay F. Llanera\nIT Instructor, CBSUA"
-        android:textSize="13sp"
-        android:textColor="@color/text_secondary"
-        android:gravity="center"
         android:layout_marginBottom="24dp"
+        android:gravity="center"
+        android:text="Developed by: Ar-jay F. Llanera\nIT Instructor, CBSUA-Sipocot © 2026"
+        android:textColor="@color/text_secondary"
+        android:textSize="13sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

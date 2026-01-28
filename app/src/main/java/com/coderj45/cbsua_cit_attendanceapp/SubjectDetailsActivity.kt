@@ -2,10 +2,12 @@ package com.coderj45.cbsua_cit_attendanceapp
 
 import android.content.ContentValues
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
+import android.view.View
 import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
@@ -24,6 +26,7 @@ class SubjectDetailsActivity : AppCompatActivity() {
     private lateinit var adapter: DateAdapter
     private var subject: String = ""
     private var section: String = ""
+    private var lastCsvUri: Uri? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,6 +57,10 @@ class SubjectDetailsActivity : AppCompatActivity() {
             exportToSemesterCsv()
         }
 
+        findViewById<Button>(R.id.btnOpenCsv).setOnClickListener {
+            openLastCsv()
+        }
+
         findViewById<Button>(R.id.btnScanMore).setOnClickListener {
             val intent = Intent(this, ScannerActivity::class.java).apply {
                 putExtra("SUBJECT", subject)
@@ -63,6 +70,20 @@ class SubjectDetailsActivity : AppCompatActivity() {
         }
 
         loadDates()
+    }
+
+    private fun openLastCsv() {
+        lastCsvUri?.let { uri ->
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "text/csv")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            try {
+                startActivity(intent)
+            } catch (e: Exception) {
+                Toast.makeText(this, "No app found to open CSV file", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     override fun onResume() {
@@ -128,9 +149,9 @@ class SubjectDetailsActivity : AppCompatActivity() {
                 val presentDates = presenceMap[studentId] ?: emptySet()
                 for (date in dates) {
                     if (presentDates.contains(date)) {
-                        csvData.append(",Present")
+                        csvData.append(",P")
                     } else {
-                        csvData.append(",Absent")
+                        csvData.append(",A")
                     }
                 }
                 csvData.append("\n")
@@ -139,9 +160,13 @@ class SubjectDetailsActivity : AppCompatActivity() {
             val fileName = "Semester_Attendance_${subject}_${section}.csv"
             
             try {
-                saveCsvToDevice(fileName, csvData.toString())
+                val uri = saveCsvToDevice(fileName, csvData.toString())
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@SubjectDetailsActivity, "Semester record saved to Documents (Alphabetical)", Toast.LENGTH_LONG).show()
+                    lastCsvUri = uri
+                    if (uri != null) {
+                        findViewById<Button>(R.id.btnOpenCsv).visibility = View.VISIBLE
+                        Toast.makeText(this@SubjectDetailsActivity, "Semester record saved to Documents", Toast.LENGTH_LONG).show()
+                    }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
@@ -151,7 +176,7 @@ class SubjectDetailsActivity : AppCompatActivity() {
         }
     }
 
-    private fun saveCsvToDevice(fileName: String, content: String) {
+    private fun saveCsvToDevice(fileName: String, content: String): Uri? {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             val resolver = contentResolver
             val contentValues = ContentValues().apply {
@@ -167,6 +192,8 @@ class SubjectDetailsActivity : AppCompatActivity() {
                     }
                 }
             }
+            return uri
         }
+        return null
     }
 }

@@ -2,6 +2,8 @@ package com.coderj45.cbsua_cit_attendanceapp
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -43,6 +45,9 @@ class ScannerActivity : AppCompatActivity() {
 
     private var lensFacing = CameraSelector.LENS_FACING_BACK
     private val idPattern = Regex("^\\d{2}-\\d{4}$")
+    private val idExtractorPattern = Regex("\\d{2}-\\d{4}")
+
+    private var toneGenerator: ToneGenerator? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -64,6 +69,12 @@ class ScannerActivity : AppCompatActivity() {
         
         cameraExecutor = Executors.newSingleThreadExecutor()
         database = AppDatabase.getDatabase(this)
+        
+        try {
+            toneGenerator = ToneGenerator(AudioManager.STREAM_NOTIFICATION, 100)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
 
         if (allPermissionsGranted()) {
             startCamera()
@@ -132,13 +143,46 @@ class ScannerActivity : AppCompatActivity() {
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private fun handleScannedCode(code: String) {
+    private fun playBeep() {
+        try {
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun playErrorBeep() {
+        try {
+            toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP2, 300)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun handleScannedCode(scannedData: String) {
         val currentTime = System.currentTimeMillis()
         if (currentTime - lastScanTime > scanDelay) {
             
-            if (!code.matches(idPattern)) {
+            var studentId = ""
+            var studentNameFromQR: String? = null
+            
+            if (scannedData.contains(",")) {
+                val parts = scannedData.split(",")
+                if (parts.isNotEmpty()) {
+                    val rawId = parts[0].trim()
+                    studentId = idExtractorPattern.find(rawId)?.value ?: rawId
+                    if (parts.size >= 2) {
+                        studentNameFromQR = parts[1].trim()
+                    }
+                }
+            } else {
+                studentId = idExtractorPattern.find(scannedData.trim())?.value ?: scannedData.trim()
+            }
+
+            if (!studentId.matches(idPattern)) {
                 runOnUiThread {
-                    statusText.text = "Invalid ID Pattern!\nMust be: 00-0000"
+                    statusText.text = "Invalid ID Pattern!\nID: $studentId\nMust be: 00-0000"
+                    playErrorBeep()
                 }
                 return
             }
@@ -146,20 +190,81 @@ class ScannerActivity : AppCompatActivity() {
             lastScanTime = currentTime
 
             lifecycleScope.launch(Dispatchers.IO) {
-                val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
-
-                val savedName = database.attendanceDao().getStudentName(code)
-                val existing = database.attendanceDao().getExistingRecord(code, subject, section, dateStr)
+                val existingName = database.attendanceDao().getStudentName(studentId)
                 
                 withContext(Dispatchers.Main) {
-                    if (existing != null) {
-                        showAlreadyRecordedModal(code, savedName)
+                    if (studentNameFromQR == null && existingName == null) {
+                        // Brand new student with no name in DB and no name in QR
+                        playBeep() // Beep to indicate scan was successful, but name needed
+                        showRegisterStudentDialog(studentId)
                     } else {
-                        saveAttendance(code, savedName, timeStr, dateStr)
+                        // Name found either in QR or DB
+                        val finalName = studentNameFromQR ?: existingName
+                        
+                        // Update DB if name came from QR but wasn't in DB (or if it's different)
+                        if (studentNameFromQR != null) {
+                            withContext(Dispatchers.IO) {
+                                database.attendanceDao().updateStudentName(StudentNameEntity(studentId, studentNameFromQR))
+                                database.attendanceDao().updateAttendanceStudentNames(studentId, studentNameFromQR)
+                            }
+                        }
+
+                        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+
+                        val alreadyRecorded = withContext(Dispatchers.IO) {
+                            database.attendanceDao().getExistingRecord(studentId, subject, section, dateStr)
+                        }
+
+                        if (alreadyRecorded != null) {
+                            playErrorBeep()
+                            showAlreadyRecordedModal(studentId, finalName)
+                        } else {
+                            playBeep()
+                            saveAttendance(studentId, finalName, timeStr, dateStr)
+                        }
                     }
                 }
             }
+        }
+    }
+
+    private fun showRegisterStudentDialog(studentId: String) {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_register_student, null)
+        val tvIdLabel = dialogView.findViewById<TextView>(R.id.tvStudentIdLabel)
+        val etName = dialogView.findViewById<EditText>(R.id.etStudentName)
+        
+        tvIdLabel.text = "ID: $studentId"
+
+        AlertDialog.Builder(this)
+            .setView(dialogView)
+            .setCancelable(false)
+            .setPositiveButton("Register & Record") { _, _ ->
+                val name = etName.text.toString().trim()
+                if (name.isNotEmpty()) {
+                    processNewStudentAttendance(studentId, name)
+                } else {
+                    Toast.makeText(this, "Name is required!", Toast.LENGTH_SHORT).show()
+                    showRegisterStudentDialog(studentId) // Reshow if empty
+                }
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+                statusText.text = "Registration cancelled for $studentId"
+            }
+            .show()
+    }
+
+    private fun processNewStudentAttendance(studentId: String, name: String) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            // 1. Save to Student Names table
+            database.attendanceDao().updateStudentName(StudentNameEntity(studentId, name))
+            
+            // 2. Record Attendance
+            val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+            
+            saveAttendance(studentId, name, timeStr, dateStr)
         }
     }
 
@@ -175,8 +280,10 @@ class ScannerActivity : AppCompatActivity() {
             )
             database.attendanceDao().insertAttendance(record)
         }
-        statusText.text = "Recorded: ${name ?: code}\nSubject: $subject | Section: $section\nSaved at $timeStr"
-        showAttendanceModal(code, name)
+        withContext(Dispatchers.Main) {
+            statusText.text = "Recorded: ${name ?: code}\nSaved at $timeStr"
+            showAttendanceModal(code, name)
+        }
     }
 
     private fun showAttendanceModal(studentId: String, name: String?) {
@@ -215,5 +322,6 @@ class ScannerActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         cameraExecutor.shutdown()
+        toneGenerator?.release()
     }
 }

@@ -17,11 +17,14 @@ interface AttendanceDao {
     @Query("SELECT * FROM attendance_table WHERE studentId = :studentId AND subject = :subject AND section = :section AND date = :date LIMIT 1")
     suspend fun getExistingRecord(studentId: String, subject: String, section: String, date: String): AttendanceEntity?
 
-    @Query("SELECT studentName FROM attendance_table WHERE studentId = :studentId AND studentName IS NOT NULL LIMIT 1")
+    @Query("SELECT name FROM student_names WHERE studentId = :studentId LIMIT 1")
     suspend fun getStudentName(studentId: String): String?
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun updateStudentName(studentName: StudentNameEntity)
+
     @Query("UPDATE attendance_table SET studentName = :name WHERE studentId = :studentId")
-    suspend fun updateStudentName(studentId: String, name: String)
+    suspend fun updateAttendanceStudentNames(studentId: String, name: String)
 
     @Query("SELECT subject, section, MIN(date || ' ' || scanTime) as firstScan FROM attendance_table GROUP BY subject, section")
     suspend fun getAllClasses(): List<ClassInfo>
@@ -43,6 +46,16 @@ interface AttendanceDao {
 
     @Query("DELETE FROM attendance_table WHERE subject = :subject AND section = :section AND date = :date")
     suspend fun deleteDailyAttendance(subject: String, section: String, date: String)
+
+    // New Subject related methods
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertSubject(subject: SubjectEntity)
+
+    @Query("SELECT * FROM subjects")
+    suspend fun getAllSubjects(): List<SubjectEntity>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStudentNames(studentNames: List<StudentNameEntity>)
 }
 
 data class ClassInfo(
