@@ -12,12 +12,14 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.FileProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.io.OutputStreamWriter
 
 class SubjectDetailsActivity : AppCompatActivity() {
@@ -58,7 +60,7 @@ class SubjectDetailsActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btnOpenCsv).setOnClickListener {
-            openLastCsv()
+            shareLastCsv()
         }
 
         findViewById<Button>(R.id.btnScanMore).setOnClickListener {
@@ -72,17 +74,14 @@ class SubjectDetailsActivity : AppCompatActivity() {
         loadDates()
     }
 
-    private fun openLastCsv() {
+    private fun shareLastCsv() {
         lastCsvUri?.let { uri ->
-            val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "text/csv")
+            val intent = Intent(Intent.ACTION_SEND).apply {
+                type = "text/csv"
+                putExtra(Intent.EXTRA_STREAM, uri)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            try {
-                startActivity(intent)
-            } catch (e: Exception) {
-                Toast.makeText(this, "No app found to open CSV file", Toast.LENGTH_SHORT).show()
-            }
+            startActivity(Intent.createChooser(intent, "Share Attendance CSV"))
         }
     }
 
@@ -110,10 +109,8 @@ class SubjectDetailsActivity : AppCompatActivity() {
                 return@launch
             }
 
-            // 1. Get unique sorted dates
             val dates = allRecords.map { it.date }.distinct().sorted()
             
-            // 2. Map Student IDs to Names
             val nameMap = mutableMapOf<String, String>()
             for (record in allRecords) {
                 if (!record.studentName.isNullOrEmpty()) {
@@ -121,51 +118,59 @@ class SubjectDetailsActivity : AppCompatActivity() {
                 }
             }
 
-            // 3. Create a sorted list of unique students based on Name (Alphabetical)
             val uniqueStudentIds = allRecords.map { it.studentId }.distinct()
             val sortedStudents = uniqueStudentIds.map { id ->
                 id to (nameMap[id] ?: "Unknown")
-            }.sortedBy { it.second.lowercase() } // Sort by Name, case-insensitive
+            }.sortedBy { it.second.lowercase() }
 
-            // 4. Create a presence map: Map<StudentId, Set<Date>>
-            val presenceMap = mutableMapOf<String, MutableSet<String>>()
+            val presenceMap = mutableMapOf<String, MutableMap<String, String>>()
             for (record in allRecords) {
-                presenceMap.getOrPut(record.studentId) { mutableSetOf() }.add(record.date)
+                val studentMap = presenceMap.getOrPut(record.studentId) { mutableMapOf() }
+                studentMap[record.date] = record.scanTime
             }
 
-            // 5. Build CSV content
             val csvData = StringBuilder()
             
-            // Header: Student ID, Name, Date1, Date2, ...
+            // Added Subject and Section details above the table
+            csvData.append("SUBJECT,$subject\n")
+            csvData.append("SECTION,$section\n")
+            csvData.append("GENERATED ON,${java.text.SimpleDateFormat("yyyy-MM-dd hh:mm a", java.util.Locale.getDefault()).format(java.util.Date())}\n\n")
+
             csvData.append("Student ID,Name")
             for (date in dates) {
                 csvData.append(",$date")
             }
             csvData.append("\n")
 
-            // Rows: StudentID, Name, P/A, P/A, ... (Sorted by Name)
             for ((studentId, studentName) in sortedStudents) {
                 csvData.append("$studentId,$studentName")
-                val presentDates = presenceMap[studentId] ?: emptySet()
+                val records = presenceMap[studentId] ?: emptyMap()
                 for (date in dates) {
-                    if (presentDates.contains(date)) {
-                        csvData.append(",P")
-                    } else {
-                        csvData.append(",A")
+                    val status = records[date]
+                    val code = when {
+                        status == null -> "A"
+                        status == "ABSENT" -> "A"
+                        status == "EXCUSED" -> "E"
+                        status.startsWith("LATE") -> "L"
+                        else -> "P"
                     }
+                    csvData.append(",$code")
                 }
                 csvData.append("\n")
             }
 
-            val fileName = "Semester_Attendance_${subject}_${section}.csv"
+            val fileName = "Attendance_${subject}_${section}.csv"
             
             try {
                 val uri = saveCsvToDevice(fileName, csvData.toString())
                 withContext(Dispatchers.Main) {
                     lastCsvUri = uri
                     if (uri != null) {
-                        findViewById<Button>(R.id.btnOpenCsv).visibility = View.VISIBLE
-                        Toast.makeText(this@SubjectDetailsActivity, "Semester record saved to Documents", Toast.LENGTH_LONG).show()
+                        findViewById<Button>(R.id.btnOpenCsv).apply {
+                            visibility = View.VISIBLE
+                            text = "Share"
+                        }
+                        Toast.makeText(this@SubjectDetailsActivity, "CSV Generated Successfully!", Toast.LENGTH_LONG).show()
                     }
                 }
             } catch (e: Exception) {
@@ -193,7 +198,13 @@ class SubjectDetailsActivity : AppCompatActivity() {
                 }
             }
             return uri
+        } else {
+            // Older versions support
+            val docsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+            if (!docsDir.exists()) docsDir.mkdirs()
+            val file = File(docsDir, fileName)
+            file.writeText(content)
+            return FileProvider.getUriForFile(this, "${packageName}.provider", file)
         }
-        return null
     }
 }

@@ -3,7 +3,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/background_light">
+    android:background="@color/background_light"
+    android:fitsSystemWindows="true">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -82,6 +83,40 @@
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
+            <!-- Introduction Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="@color/surface_white"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="Introduction"
+                        android:textColor="@color/primary_purple"
+                        android:textSize="18sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="The CBSUA-CIT Attendance App is a high-performance, offline-first mobile solution designed for instructors at the College of Information Technology. It streamlines classroom management through smart QR/barcode scanning, automated late detection, and real-time attendance analytics, ensuring accurate and effortless record-keeping."
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp"
+                        android:lineSpacingExtra="4dp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Key Features Card -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
@@ -112,7 +147,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:lineSpacingExtra="8dp"
-                        android:text="• QR Code and Barcode Scanning\n• Automatic ID-to-Name Mapping\n• Multi-type QR Parsing (ID, Name, Course)\n• Subject and Section Management\n• Batch Student Registration\n• Alphabetical Semester Record Generation\n• CSV Export for Easy Grading\n• Offline-first Database (Room SQLite)"
+                        android:text="• Smart QR/Barcode Scanning with Haptic Feedback\n• Automated Late (L) Detection with Custom Thresholds\n• Real-time Attendance Summary Dashboard\n• Automatic Student ID-to-Name Identity Mapping\n• Offline-first Database (No Internet Required)\n• Absence (A) and Excuse (E) Status Tracking\n• Multi-class &amp; Student Roster Management\n• Instant CSV Export and Professional Sharing\n• Built-in Scanner Flashlight for Low-light Use\n• Search &amp; Filter for Fast Record Management"
                         android:textColor="@color/text_primary"
                         android:textSize="15sp" />
                 </LinearLayout>

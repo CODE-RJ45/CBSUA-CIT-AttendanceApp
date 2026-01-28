@@ -4,7 +4,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 
-@Database(entities = [AttendanceEntity::class, SubjectEntity::class, StudentNameEntity::class], version = 4)
+@Database(entities = [AttendanceEntity::class, SubjectEntity::class, StudentNameEntity::class], version = 6)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun attendanceDao(): AttendanceDao
 

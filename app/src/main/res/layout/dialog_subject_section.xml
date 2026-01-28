@@ -9,9 +9,10 @@
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Select Class"
+        android:text="Select Registered Class"
         android:textSize="18sp"
         android:textStyle="bold"
+        android:textColor="@color/primary_purple"
         android:layout_marginBottom="16dp" />
 
     <com.google.android.material.textfield.TextInputLayout
@@ -19,7 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
-        android:hint="Registered Classes">
+        android:hint="Choose from List">
 
         <AutoCompleteTextView
             android:id="@+id/actvClasses"
@@ -28,39 +29,44 @@
             android:inputType="none" />
     </com.google.android.material.textfield.TextInputLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Or Enter Manually"
-        android:textSize="14sp"
-        android:textColor="#757575"
-        android:layout_marginBottom="8dp" />
-
-    <com.google.android.material.textfield.TextInputLayout
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+    <LinearLayout
+        android:id="@+id/llNoClassContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="8dp"
-        android:hint="Subject Name">
+        android:orientation="vertical"
+        android:gravity="center"
+        android:visibility="gone"
+        android:padding="12dp">
 
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etSubject"
-            android:layout_width="match_parent"
+        <TextView
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:inputType="textCapCharacters" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:text="No registered classes found."
+            android:textColor="@color/text_secondary"
+            android:textSize="14sp"
+            android:layout_marginBottom="12dp" />
 
-    <com.google.android.material.textfield.TextInputLayout
-        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:hint="Section">
-
-        <com.google.android.material.textfield.TextInputEditText
-            android:id="@+id/etSection"
-            android:layout_width="match_parent"
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnGoToRegister"
+            style="@style/Widget.Material3.Button.TonalButton"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:inputType="textCapCharacters" />
-    </com.google.android.material.textfield.TextInputLayout>
+            android:text="Register a Class Now"
+            app:icon="@android:drawable/ic_menu_add" />
+    </LinearLayout>
+
+    <!-- Hidden fields for logic -->
+    <View
+        android:id="@+id/etSubject"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:tag="subject_placeholder" />
+    <View
+        android:id="@+id/etSection"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        android:tag="section_placeholder" />
 
 </LinearLayout>

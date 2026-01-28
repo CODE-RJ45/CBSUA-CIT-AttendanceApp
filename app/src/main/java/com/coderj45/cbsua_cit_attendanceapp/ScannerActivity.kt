@@ -1,12 +1,17 @@
 package com.coderj45.cbsua_cit_attendanceapp
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.media.ToneGenerator
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import android.view.LayoutInflater
 import android.widget.EditText
 import android.widget.ImageButton
@@ -14,6 +19,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
@@ -22,6 +28,7 @@ import androidx.camera.view.PreviewView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -39,10 +46,14 @@ class ScannerActivity : AppCompatActivity() {
     
     private var subject: String = ""
     private var section: String = ""
+    private var classStartTime: String? = null
+    private var lateThreshold: Int = 15
 
     private var lastScanTime = 0L
     private val scanDelay = 3000L
 
+    private var camera: Camera? = null
+    private var isFlashOn = false
     private var lensFacing = CameraSelector.LENS_FACING_BACK
     private val idPattern = Regex("^\\d{2}-\\d{4}$")
     private val idExtractorPattern = Regex("\\d{2}-\\d{4}")
@@ -57,15 +68,6 @@ class ScannerActivity : AppCompatActivity() {
         section = intent.getStringExtra("SECTION") ?: "Unknown"
 
         statusText = findViewById(R.id.statusTextView)
-        statusText.text = "Subject: $subject | Section: $section\nReady to Scan"
-
-        findViewById<ImageButton>(R.id.btnSwitchCamera).setOnClickListener {
-            toggleCamera()
-        }
-
-        findViewById<ExtendedFloatingActionButton>(R.id.btnManualEntry).setOnClickListener {
-            showManualIdDialog()
-        }
         
         cameraExecutor = Executors.newSingleThreadExecutor()
         database = AppDatabase.getDatabase(this)
@@ -76,10 +78,58 @@ class ScannerActivity : AppCompatActivity() {
             e.printStackTrace()
         }
 
+        findViewById<FloatingActionButton>(R.id.btnSwitchCamera).setOnClickListener {
+            toggleCamera()
+        }
+
+        findViewById<FloatingActionButton>(R.id.btnFlashlight).setOnClickListener {
+            toggleFlashlight()
+        }
+
+        findViewById<ExtendedFloatingActionButton>(R.id.btnManualEntry).setOnClickListener {
+            showManualIdDialog()
+        }
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            val subjects = database.attendanceDao().getAllSubjects()
+            val currentSubject = subjects.find { it.subject == subject && it.section == section }
+            classStartTime = currentSubject?.startTime
+            lateThreshold = currentSubject?.lateThreshold ?: 15
+            
+            withContext(Dispatchers.Main) {
+                val displayStartTime = classStartTime?.let { convertTo12Hr(it) } ?: "Not Set"
+                statusText.text = "Subject: $subject | Section: $section\n" + 
+                                 "Start: $displayStartTime | Ready to Scan"
+            }
+        }
+
         if (allPermissionsGranted()) {
             startCamera()
         } else {
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 10)
+        }
+    }
+
+    private fun convertTo12Hr(time24: String): String {
+        return try {
+            val sdf24 = SimpleDateFormat("HH:mm", Locale.getDefault())
+            val sdf12 = SimpleDateFormat("hh:mm a", Locale.getDefault())
+            val date = sdf24.parse(time24)
+            if (date != null) sdf12.format(date) else time24
+        } catch (e: Exception) {
+            time24
+        }
+    }
+
+    private fun toggleFlashlight() {
+        if (camera?.cameraInfo?.hasFlashUnit() == true) {
+            isFlashOn = !isFlashOn
+            camera?.cameraControl?.enableTorch(isFlashOn)
+            findViewById<FloatingActionButton>(R.id.btnFlashlight).setImageResource(
+                if (isFlashOn) android.R.drawable.ic_menu_compass else android.R.drawable.ic_menu_compass
+            )
+        } else {
+            Toast.makeText(this, "Flash not available", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -134,7 +184,7 @@ class ScannerActivity : AppCompatActivity() {
 
             try {
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(
+                camera = cameraProvider.bindToLifecycle(
                     this, cameraSelector, preview, imageAnalyzer
                 )
             } catch (exc: Exception) {
@@ -146,14 +196,33 @@ class ScannerActivity : AppCompatActivity() {
     private fun playBeep() {
         try {
             toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP, 150)
+            vibrate(100)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private fun vibrate(duration: Long) {
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager = getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
+        } else {
+            @Suppress("DEPRECATION")
+            vibrator.vibrate(duration)
         }
     }
 
     private fun playErrorBeep() {
         try {
             toneGenerator?.startTone(ToneGenerator.TONE_PROP_BEEP2, 300)
+            vibrate(300)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -194,14 +263,11 @@ class ScannerActivity : AppCompatActivity() {
                 
                 withContext(Dispatchers.Main) {
                     if (studentNameFromQR == null && existingName == null) {
-                        // Brand new student with no name in DB and no name in QR
-                        playBeep() // Beep to indicate scan was successful, but name needed
+                        playBeep()
                         showRegisterStudentDialog(studentId)
                     } else {
-                        // Name found either in QR or DB
                         val finalName = studentNameFromQR ?: existingName
                         
-                        // Update DB if name came from QR but wasn't in DB (or if it's different)
                         if (studentNameFromQR != null) {
                             withContext(Dispatchers.IO) {
                                 database.attendanceDao().updateStudentName(StudentNameEntity(studentId, studentNameFromQR))
@@ -210,7 +276,23 @@ class ScannerActivity : AppCompatActivity() {
                         }
 
                         val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                        val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+                        val timeStr12 = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date())
+
+                        var statusStr = timeStr12
+                        classStartTime?.let { startStr ->
+                            try {
+                                val sdf = SimpleDateFormat("HH:mm", Locale.getDefault())
+                                val startTime = sdf.parse(startStr)
+                                val scanTime = sdf.parse(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()))
+                                
+                                if (startTime != null && scanTime != null) {
+                                    val diffInMinutes = (scanTime.time - startTime.time) / (1000 * 60)
+                                    if (diffInMinutes >= lateThreshold) {
+                                        statusStr = "LATE ($timeStr12)"
+                                    }
+                                }
+                            } catch (e: Exception) { e.printStackTrace() }
+                        }
 
                         val alreadyRecorded = withContext(Dispatchers.IO) {
                             database.attendanceDao().getExistingRecord(studentId, subject, section, dateStr)
@@ -221,7 +303,7 @@ class ScannerActivity : AppCompatActivity() {
                             showAlreadyRecordedModal(studentId, finalName)
                         } else {
                             playBeep()
-                            saveAttendance(studentId, finalName, timeStr, dateStr)
+                            saveAttendance(studentId, finalName, statusStr, dateStr)
                         }
                     }
                 }
@@ -232,7 +314,7 @@ class ScannerActivity : AppCompatActivity() {
     private fun showRegisterStudentDialog(studentId: String) {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_register_student, null)
         val tvIdLabel = dialogView.findViewById<TextView>(R.id.tvStudentIdLabel)
-        val etName = dialogView.findViewById<EditText>(R.id.etStudentName)
+        val etSurname = dialogView.findViewById<EditText>(R.id.etSurname)
         
         tvIdLabel.text = "ID: $studentId"
 
@@ -240,12 +322,12 @@ class ScannerActivity : AppCompatActivity() {
             .setView(dialogView)
             .setCancelable(false)
             .setPositiveButton("Register & Record") { _, _ ->
-                val name = etName.text.toString().trim()
-                if (name.isNotEmpty()) {
-                    processNewStudentAttendance(studentId, name)
+                val surname = etSurname.text.toString().trim()
+                if (surname.isNotEmpty()) {
+                    processNewStudentAttendance(studentId, surname)
                 } else {
-                    Toast.makeText(this, "Name is required!", Toast.LENGTH_SHORT).show()
-                    showRegisterStudentDialog(studentId) // Reshow if empty
+                    Toast.makeText(this, "Surname is required!", Toast.LENGTH_SHORT).show()
+                    showRegisterStudentDialog(studentId)
                 }
             }
             .setNegativeButton("Cancel") { dialog, _ ->
@@ -257,14 +339,12 @@ class ScannerActivity : AppCompatActivity() {
 
     private fun processNewStudentAttendance(studentId: String, name: String) {
         lifecycleScope.launch(Dispatchers.IO) {
-            // 1. Save to Student Names table
             database.attendanceDao().updateStudentName(StudentNameEntity(studentId, name))
             
-            // 2. Record Attendance
             val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            val timeStr = SimpleDateFormat("HH:mm:ss", Locale.getDefault()).format(Date())
+            val timeStr12 = SimpleDateFormat("hh:mm:ss a", Locale.getDefault()).format(Date())
             
-            saveAttendance(studentId, name, timeStr, dateStr)
+            saveAttendance(studentId, name, timeStr12, dateStr)
         }
     }
 
@@ -281,16 +361,16 @@ class ScannerActivity : AppCompatActivity() {
             database.attendanceDao().insertAttendance(record)
         }
         withContext(Dispatchers.Main) {
-            statusText.text = "Recorded: ${name ?: code}\nSaved at $timeStr"
-            showAttendanceModal(code, name)
+            statusText.text = "Recorded: ${name ?: code}\nStatus: $timeStr"
+            showAttendanceModal(code, name, timeStr)
         }
     }
 
-    private fun showAttendanceModal(studentId: String, name: String?) {
+    private fun showAttendanceModal(studentId: String, name: String?, status: String) {
         val displayName = name ?: studentId
         val dialog = AlertDialog.Builder(this)
             .setTitle("Attendance Recorded")
-            .setMessage("Student: $displayName\nClass: $subject ($section)")
+            .setMessage("Student: $displayName\nStatus: $status")
             .setCancelable(false)
             .create()
         dialog.show()

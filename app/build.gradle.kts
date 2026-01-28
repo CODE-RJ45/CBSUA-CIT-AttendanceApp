@@ -11,7 +11,7 @@ android {
     defaultConfig {
         applicationId = "com.coderj45.cbsua_cit_attendanceapp"
         minSdk = 24
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
         versionName = "1.0"
 
@@ -36,27 +36,28 @@ android {
     }
     packaging {
         jniLibs {
-            useLegacyPackaging = true
+            useLegacyPackaging = false
         }
     }
 }
 
 dependencies {
 
-        // 1. CameraX (The Camera)
-        val camerax_version = "1.3.0"
+        // 1. CameraX (The Camera) - Updated for Android 15 / 16 KB support
+        val camerax_version = "1.4.1"
         implementation("androidx.camera:camera-camera2:$camerax_version")
         implementation("androidx.camera:camera-lifecycle:$camerax_version")
         implementation("androidx.camera:camera-view:$camerax_version")
 
-        // 2. ML Kit (The Scanner)
-        implementation("com.google.mlkit:barcode-scanning:17.2.0")
+        // 2. ML Kit (The Scanner) - Updated for Android 15 / 16 KB support
+        implementation("com.google.mlkit:barcode-scanning:17.3.0")
 
         // 3. Room Database (The Storage)
         val room_version = "2.6.1"
         implementation("androidx.room:room-runtime:$room_version")
-        kapt("androidx.room:room-compiler:$room_version") // You might need to add 'id("kotlin-kapt")' in plugins at the top
-        implementation("androidx.room:room-ktx:$room_version") // For Coroutines suppor
+        kapt("androidx.room:room-compiler:$room_version")
+        implementation("androidx.room:room-ktx:$room_version")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)

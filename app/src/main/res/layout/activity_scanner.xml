@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/black"
@@ -13,92 +11,82 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Scanning Overlay -->
     <View
         android:id="@+id/scan_overlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#80000000" />
+
+    <ImageView
+        android:id="@+id/scan_frame"
         android:layout_width="280dp"
         android:layout_height="280dp"
-        android:background="@drawable/scan_frame"
+        android:src="@drawable/scan_frame"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Place QR Code inside the frame"
-        android:textColor="@color/white"
-        android:textSize="14sp"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/scan_overlay"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <!-- Top Toolbar Area -->
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp"
-        android:background="#4D000000"
-        app:layout_constraintTop_toTopOf="parent">
-
-        <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="QR Scanner"
-            android:textColor="@color/white"
-            android:textSize="20sp"
-            android:textStyle="bold" />
-
-        <ImageButton
-            android:id="@+id/btnSwitchCamera"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_camera"
-            android:contentDescription="Switch Camera"
-            app:tint="@color/white" />
-    </LinearLayout>
-
-    <!-- Manual Entry Button -->
-    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-        android:id="@+id/btnManualEntry"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="24dp"
-        android:text="Type ID Manually"
-        android:textColor="@color/white"
-        app:icon="@android:drawable/ic_menu_edit"
-        app:iconTint="@color/white"
-        app:backgroundTint="@color/primary_purple"
-        app:layout_constraintBottom_toTopOf="@id/statusCard"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
-
-    <!-- Bottom Status Area -->
     <com.google.android.material.card.MaterialCardView
         android:id="@+id/statusCard"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_margin="24dp"
-        app:cardBackgroundColor="#CCFFFFFF"
-        app:cardCornerRadius="24dp"
-        app:cardElevation="8dp"
-        app:layout_constraintBottom_toBottomOf="parent">
+        android:layout_margin="16dp"
+        app:cardBackgroundColor="#99000000"
+        app:cardCornerRadius="16dp"
+        app:cardElevation="0dp"
+        app:strokeWidth="0dp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
 
         <TextView
             android:id="@+id/statusTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:padding="20dp"
             android:gravity="center"
+            android:padding="16dp"
             android:text="Ready to Scan"
-            android:textColor="@color/primary_purple"
-            android:textSize="16sp"
-            android:textStyle="bold" />
+            android:textColor="@color/white"
+            android:textSize="15sp" />
     </com.google.android.material.card.MaterialCardView>
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnFlashlight"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:src="@android:drawable/ic_menu_compass"
+        app:backgroundTint="@color/primary_purple"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:tint="@color/white"
+        android:contentDescription="Toggle Flashlight" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnSwitchCamera"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:src="@android:drawable/ic_menu_camera"
+        app:backgroundTint="@color/primary_purple"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:tint="@color/white"
+        android:contentDescription="Switch Camera" />
+
+    <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+        android:id="@+id/btnManualEntry"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="24dp"
+        android:text="Manual ID"
+        android:textColor="@color/white"
+        app:backgroundTint="@color/primary_purple"
+        app:icon="@android:drawable/ic_menu_edit"
+        app:iconTint="@color/white"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/btnSwitchCamera"
+        app:layout_constraintStart_toEndOf="@id/btnFlashlight" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

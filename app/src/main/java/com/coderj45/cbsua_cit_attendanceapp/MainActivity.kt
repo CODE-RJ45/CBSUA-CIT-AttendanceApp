@@ -3,10 +3,11 @@ package com.coderj45.cbsua_cit_attendanceapp
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
 import android.widget.Button
-import android.widget.EditText
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -18,6 +19,8 @@ import kotlinx.coroutines.withContext
 class MainActivity : AppCompatActivity() {
 
     private lateinit var database: AppDatabase
+    private var selectedSubject: String = ""
+    private var selectedSection: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -51,42 +54,61 @@ class MainActivity : AppCompatActivity() {
     private fun showClassSelectionDialog() {
         val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_subject_section, null)
         val actvClasses = dialogView.findViewById<AutoCompleteTextView>(R.id.actvClasses)
-        val etSubject = dialogView.findViewById<EditText>(R.id.etSubject)
-        val etSection = dialogView.findViewById<EditText>(R.id.etSection)
+        val llNoClass = dialogView.findViewById<LinearLayout>(R.id.llNoClassContainer)
+        val btnGoToRegister = dialogView.findViewById<Button>(R.id.btnGoToRegister)
+
+        selectedSubject = ""
+        selectedSection = ""
 
         lifecycleScope.launch(Dispatchers.IO) {
             val registeredClasses = database.attendanceDao().getAllSubjects()
             val classStrings = registeredClasses.map { "${it.subject} - ${it.section}" }
 
             withContext(Dispatchers.Main) {
-                val adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_dropdown_item_1line, classStrings)
-                actvClasses.setAdapter(adapter)
+                if (classStrings.isEmpty()) {
+                    llNoClass.visibility = View.VISIBLE
+                    actvClasses.isEnabled = false
+                } else {
+                    llNoClass.visibility = View.GONE
+                    actvClasses.isEnabled = true
+                    val adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_dropdown_item_1line, classStrings)
+                    actvClasses.setAdapter(adapter)
 
-                actvClasses.setOnItemClickListener { _, _, position, _ ->
-                    val selected = registeredClasses[position]
-                    etSubject.setText(selected.subject)
-                    etSection.setText(selected.section)
+                    actvClasses.setOnItemClickListener { _, _, position, _ ->
+                        val selected = registeredClasses[position]
+                        selectedSubject = selected.subject
+                        selectedSection = selected.section
+                    }
                 }
 
-                AlertDialog.Builder(this@MainActivity)
+                val dialog = AlertDialog.Builder(this@MainActivity)
                     .setTitle("Class Information")
                     .setView(dialogView)
-                    .setPositiveButton("Proceed") { _, _ ->
-                        val subject = etSubject.text.toString().trim()
-                        val section = etSection.text.toString().trim()
-
-                        if (subject.isNotEmpty() && section.isNotEmpty()) {
-                            val intent = Intent(this@MainActivity, ScannerActivity::class.java).apply {
-                                putExtra("SUBJECT", subject)
-                                putExtra("SECTION", section)
-                            }
-                            startActivity(intent)
-                        } else {
-                            Toast.makeText(this@MainActivity, "Please fill in all fields", Toast.LENGTH_SHORT).show()
-                        }
-                    }
+                    .setPositiveButton("Proceed", null) // Handle manually to prevent close
                     .setNegativeButton("Cancel", null)
-                    .show()
+                    .create()
+
+                dialog.show()
+
+                // Register Link click
+                btnGoToRegister.setOnClickListener {
+                    dialog.dismiss()
+                    startActivity(Intent(this@MainActivity, RegisterClassActivity::class.java))
+                }
+
+                // Proceed click
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    if (selectedSubject.isNotEmpty() && selectedSection.isNotEmpty()) {
+                        val intent = Intent(this@MainActivity, ScannerActivity::class.java).apply {
+                            putExtra("SUBJECT", selectedSubject)
+                            putExtra("SECTION", selectedSection)
+                        }
+                        startActivity(intent)
+                        dialog.dismiss()
+                    } else {
+                        Toast.makeText(this@MainActivity, "Please select a class from the list", Toast.LENGTH_SHORT).show()
+                    }
+                }
             }
         }
     }
