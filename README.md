@@ -1,5 +1,5 @@
 # CBSUA-CIT-AttendanceApp
-A mobile Android application designed to automate student attendance for the College of Industrial Technology at CBSUA using **Barcode and QR Code scanning**.
+A mobile Android application designed to automate student attendance for the College of Information Technology at CBSUA using **Barcode and QR Code scanning**.
 
 ## 🚀 Key Features
 
